@@ -7,6 +7,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv1D, Dropout, MaxPooling1D, Flatten, Dense
+from tensorflow.keras import layers, models
+import tensorflow as tf
 
 # these are dummy models
 class MLModel():
@@ -21,11 +25,49 @@ class MLModel():
     
 class TextSeqModel(MLModel):
     def __init__(self, pct=100) -> None:
-        pass
+        train_seq_df = pd.read_csv("datasets/train/train_text_seq.csv")
+        train_seq_X = train_seq_df['input_str'].tolist()
+        train_seq_Y = train_seq_df['label'].tolist()
+
+        n = len(train_seq_X)
+        n = int(n * pct / 100)
+
+        train_seq_X = train_seq_X[:n]
+        train_seq_Y = train_seq_Y[:n]
+
+        X_train = [[int(char) for char in sequence] for sequence in train_seq_X]
+
+        self.model = self.build_cnn()
+
+        X_train = np.array(X_train)
+        Y_train = np.array(train_seq_Y)
+
+        self.model.fit(X_train, Y_train, epochs=100, batch_size=32, verbose=0)
+
+    def build_cnn(self):
+        n_timesteps, n_features, n_outputs = 50,1,1
+
+        model = Sequential()
+        model.add(layers.Embedding(input_dim=10, output_dim=10, input_length=50))  # For 10 unique characters
+
+        model.add(Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(n_timesteps, n_features)))
+        model.add(Conv1D(filters=32, kernel_size=3, activation='relu'))
+        model.add(Dropout(0.5))
+        model.add(MaxPooling1D(pool_size=2))
+        model.add(Flatten())
+        model.add(Dense(7, activation='relu'))
+        model.add(Dense(n_outputs, activation='sigmoid'))  # sigmoid for binary classification
+        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        return model
 
     def predict(self, X):# random predictions
-        return np.random.randint(0,2,(len(X)))
-    
+        X = [[int(e) for e in f] for f in X] 
+        X = np.array(X)
+        #X = X.reshape(X.shape[0], -1)
+        ret = self.model.predict(X)
+        ret = (ret > 0.5).astype(int)
+        return ret
     
 class EmoticonModel(MLModel):
     def __init__(self, pct=100) -> None:
@@ -56,7 +98,8 @@ class FeatureModel(MLModel):
 
     def predict(self, X): # random predictions
         X = X.reshape(X.shape[0], -1)
-        return self.model.predict(X)
+        ret = self.model.predict(X)
+        return ret
     
 class CombinedModel(MLModel):
     def __init__(self, pct=100) -> None:
