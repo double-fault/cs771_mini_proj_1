@@ -1,16 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
-train_seq_df = pd.read_csv("datasets/train/train_text_seq.csv")
-
-train_seq_X = train_seq_df['input_str'].tolist()
-train_seq_X = [[int(x) for x in e] for e in train_seq_X]
-train_seq_Y = train_seq_df['label'].tolist()
-test_seq_df = pd.read_csv("datasets/valid/valid_text_seq.csv")
-test_seq_X = test_seq_df['input_str'].tolist()
-test_seq_X = [[int(x) for x in e] for e in test_seq_X]
-test_seq_Y = test_seq_df['label'].tolist()
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 
 # read feature dataset
 train_feat = np.load("datasets/train/train_feature.npz", allow_pickle=True)
@@ -21,12 +13,24 @@ test_feat = np.load("datasets/valid/valid_feature.npz", allow_pickle=True)
 test_feat_X = test_feat['features']
 test_feat_Y = test_feat['label']
 
+train_seq_df = pd.read_csv("datasets/train/train_emoticon.csv")
+
+mul = train_feat_X.mean()
+
+train_seq_X = train_seq_df['input_emoticon'].tolist()
+train_seq_X = [[ord(x)  for x in e] for e in train_seq_X]
+train_seq_Y = train_seq_df['label'].tolist()
+test_seq_df = pd.read_csv("datasets/valid/valid_emoticon.csv")
+test_seq_X = test_seq_df['input_emoticon'].tolist()
+test_seq_X = [[ord(x)  for x in e] for e in test_seq_X]
+test_seq_Y = test_seq_df['label'].tolist()
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 def perform(X_train, X_test, y_train, y_test):  
-    model = LogisticRegression()
+    model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=200))
     model.fit(X_train, y_train)
 
     # Make predictions
@@ -58,6 +62,10 @@ print(X_train2)
 
 print(X_test.shape)
 print(X_test2.shape)
+
+for i in range(4):
+    X_train = np.concatenate((X_train, X_train), axis=1)
+    X_test = np.concatenate((X_test, X_test), axis=1)
 
 X_train = np.concatenate((X_train, X_train2), axis=1)
 X_test = np.concatenate((X_test, X_test2), axis=1)

@@ -1,9 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-
 
 # read feature dataset
 train_feat = np.load("datasets/train/train_feature.npz", allow_pickle=True)
@@ -19,9 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 def perform(X_train, X_test, y_train, y_test):  
-    #model = LogisticRegression()
-    model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=200))
-
+    model = LogisticRegression()
     model.fit(X_train, y_train)
 
     # Make predictions
@@ -35,6 +30,11 @@ def perform(X_train, X_test, y_train, y_test):
 # Assuming X is your input data (size: n_samples x 786) and y is the binary target
 
 stps = [0.2, 0.4, 0.6, 0.8, 1.0]
+
+print(train_feat_X.shape)
+
+train_feat_X = np.max(train_feat_X, axis=-1)
+test_feat_X = np.max(test_feat_X, axis=-1)
 
 X_train = train_feat_X.reshape(train_feat_X.shape[0], -1)
 X_test = test_feat_X.reshape(test_feat_X.shape[0], -1)

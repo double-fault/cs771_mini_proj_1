@@ -1,16 +1,18 @@
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+from sklearn.pipeline import make_pipeline
 import numpy as np
 
 # read feature dataset
-train_seq_df = pd.read_csv("datasets/train/train_text_seq.csv")
+train_seq_df = pd.read_csv("datasets/train/train_emoticon.csv")
 
-train_seq_X = train_seq_df['input_str'].tolist()
-train_seq_X = [[int(x) for x in e] for e in train_seq_X]
+train_seq_X = train_seq_df['input_emoticon'].tolist()
+train_seq_X = [[ord(x) for x in e] for e in train_seq_X]
 train_seq_Y = train_seq_df['label'].tolist()
-test_seq_df = pd.read_csv("datasets/valid/valid_text_seq.csv")
-test_seq_X = test_seq_df['input_str'].tolist()
-test_seq_X = [[int(x) for x in e] for e in test_seq_X]
+test_seq_df = pd.read_csv("datasets/valid/valid_emoticon.csv")
+test_seq_X = test_seq_df['input_emoticon'].tolist()
+test_seq_X = [[ord(x) for x in e] for e in test_seq_X]
 test_seq_Y = test_seq_df['label'].tolist()
 
 from sklearn.linear_model import LogisticRegression
@@ -18,7 +20,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 def perform(X_train, X_test, y_train, y_test):  
-    model = LogisticRegression()
+    #model = LogisticRegression()
+    model = make_pipeline(StandardScaler(), LogisticRegression())
     model.fit(X_train, y_train)
 
     # Make predictions
