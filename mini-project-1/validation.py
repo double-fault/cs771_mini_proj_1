@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
         print("(1) Features dataset: ")
         accuracy = accuracy_score(pred_feat, test_feat_Y)
-        y[0].append(accuracy)
+        y[0].append(accuracy * 100)
         print(f'Accuracy: {accuracy}')
 
         conf_matrix = confusion_matrix(pred_feat, test_feat_Y)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
         print("(2) Emoticon dataset: ")
         accuracy = accuracy_score(pred_emoticons, test_emo_Y)
-        y[1].append(accuracy)
+        y[1].append(accuracy * 100)
         print(f'Accuracy: {accuracy}')
 
         conf_matrix = confusion_matrix(pred_emoticons, test_emo_Y)
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
         print("(3) Sequences dataset: ")
         accuracy = accuracy_score(pred_text, test_seq_Y)
-        y[2].append(accuracy)
+        y[2].append(accuracy * 100)
         print(f'Accuracy: {accuracy}')
 
         conf_matrix = confusion_matrix(pred_text, test_seq_Y)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
         print("(4) Combined dataset: ")
         accuracy = accuracy_score(pred_combined, test_feat_Y)
-        y[3].append(accuracy)
+        y[3].append(accuracy * 100)
         print(f'Accuracy: {accuracy}')
 
         conf_matrix = confusion_matrix(pred_combined, test_emo_Y)
