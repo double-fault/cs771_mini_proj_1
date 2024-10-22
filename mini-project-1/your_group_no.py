@@ -4,15 +4,13 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv1D, Dropout, MaxPooling1D, Flatten, Dense
+from tensorflow.keras.layers import Conv1D, Dropout, MaxPooling1D, Flatten, Dense, Embedding
 from tensorflow.keras import layers, models
 import tensorflow as tf
+from tensorflow.keras.models import Sequential
 
-# these are dummy models
+# Base class
 class MLModel():
     def __init__(self) -> None:
         pass
@@ -22,7 +20,8 @@ class MLModel():
     
     def predict(self, X):
         NotImplemented
-    
+
+# Task 1 Dataset 3: Our model is a Convolutional Neural Network 
 class TextSeqModel(MLModel):
     def __init__(self, pct=100) -> None:
         train_seq_df = pd.read_csv("datasets/train/train_text_seq.csv")
@@ -61,24 +60,88 @@ class TextSeqModel(MLModel):
 
         return model
 
-    def predict(self, X):# random predictions
+    def predict(self, X):
         X = [[int(e) for e in f] for f in X] 
         X = np.array(X)
-        #X = X.reshape(X.shape[0], -1)
         ret = self.model.predict(X)
         ret = (ret > 0.5).astype(int)
         return ret
-    
-class EmoticonModel(MLModel):
-    def __init__(self, pct=100) -> None:
-        pass
 
-    def predict(self, X):# random predictions
-        return np.random.randint(0,2,(len(X)))
-    
+# Task 1 Dataset 1: Our model is a deep neural network
+class EmoticonModel(MLModel):
+    def __init__(self, pct=100):
+        self.train_data = pd.read_csv("datasets/train/train_emoticon.csv")
+
+        n = len(self.train_data)
+        n = int(n * pct / 100)
+
+        self.train_data = self.train_data[0:n]
+
+        self.model = self.build_model()
+        self.train()
+
+    def create_emoji_dict(self):
+        emoji_dict = {}
+        for i in range(len(self.train_data['input_emoticon'])):
+            for emoji in self.train_data['input_emoticon'][i]:
+                if emoji not in emoji_dict:
+                    emoji_dict[emoji] = len(emoji_dict)
+
+        emoji_dict['<UNK>'] = len(emoji_dict)
+        return emoji_dict
+
+    def emoji_string_to_indices(self, emoji_string, emoji_dict):
+        indices = []
+        for emoji in emoji_string:
+            if emoji in emoji_dict:
+                indices.append(emoji_dict[emoji])
+            else:
+                indices.append(-1)  # Use -1 or any other placeholder for unknown emojis
+        return indices
+
+    def preprocess_data(self, data):
+        emoji_dict = self.create_emoji_dict()
+        numeric_data = [self.emoji_string_to_indices(sample, emoji_dict) for sample in data]
+        numeric_data_arr = np.array(numeric_data)
+        return numeric_data_arr
+
+    def build_model(self):
+        model = Sequential()
+        # Embedding layer: convert 13 emoji Unicode integers into dense vectors (e.g., 50 dimensions)
+        model.add(Embedding(input_dim=250, output_dim=10, input_length=13))  
+        model.add(Flatten())
+
+        # Dense layers for classification
+        model.add(Dense(32, activation='relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(16, activation='relu'))
+        model.add(Dropout(0.5))
+
+        # Output layer for binary classification
+        model.add(Dense(1, activation='sigmoid'))
+
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        model.build(input_shape=(None, 13))
+        return model
+
+    def train(self):
+        numeric_data_arr = self.preprocess_data(self.train_data['input_emoticon'])
+        X_train = numeric_data_arr
+        y_train = self.train_data['label']
+        self.model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+        self.model.fit(X_train, y_train, epochs=15, batch_size=32)
+
+    def predict(self, X):
+        data = self.preprocess_data(X)
+        ret = self.model.predict(data)
+        ret = (ret > 0.5).astype(int)
+
+        return ret
+
+# Task 1 Dataset 2: Our model is logistic regression
 class FeatureModel(MLModel):
     def __init__(self, pct=100) -> None:
-        # read feature dataset
         train_feat = np.load("datasets/train/train_feature.npz", allow_pickle=True)
         train_feat_X = train_feat['features']
         train_feat_Y = train_feat['label']
@@ -96,11 +159,12 @@ class FeatureModel(MLModel):
 
         self.model.fit(X_train, y_train)
 
-    def predict(self, X): # random predictions
+    def predict(self, X): 
         X = X.reshape(X.shape[0], -1)
         ret = self.model.predict(X)
         return ret
-    
+
+# Task 2: Our model is logistic regression on a combination of dataset 1 and 2
 class CombinedModel(MLModel):
     def __init__(self, pct=100) -> None:
         train_feat = np.load("datasets/train/train_feature.npz", allow_pickle=True)
@@ -164,13 +228,13 @@ if __name__ == '__main__':
     test_emoticon_X = pd.read_csv("datasets/test/test_emoticon.csv")['input_emoticon'].tolist()
     test_seq_X = pd.read_csv("datasets/test/test_text_seq.csv")['input_str'].tolist()
     
-    # your trained models 
+    # the trained models 
     feature_model = FeatureModel()
     text_model = TextSeqModel()
     emoticon_model  = EmoticonModel()
     best_model = CombinedModel()
     
-    # predictions from your trained models
+    # predictions from the trained models
     pred_feat = feature_model.predict(test_feat_X)
     pred_emoticons = emoticon_model.predict(test_emoticon_X)
     pred_text = text_model.predict(test_seq_X)
