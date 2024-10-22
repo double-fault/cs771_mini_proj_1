@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 if __name__ == '__main__':
-    stps = [20, 40, 60, 80, 100]
+    stps = [100, 100, 100, 100, 100]
 
     x = []
     y = [[],[],[],[]]
@@ -20,13 +20,13 @@ if __name__ == '__main__':
         test_seq_X = pd.read_csv("datasets/valid/valid_text_seq.csv")['input_str'].tolist()
         
         best_model = ygn.CombinedModel(stp)
-        feature_model = ygn.FeatureModel(stp)
-        text_model = ygn.TextSeqModel(stp)
-        emoticon_model  = ygn.EmoticonModel(stp)
+        #feature_model = ygn.FeatureModel(stp)
+        #text_model = ygn.TextSeqModel(stp)
+        #emoticon_model  = ygn.EmoticonModel(stp)
         
-        pred_feat = feature_model.predict(test_feat_X)
-        pred_emoticons = emoticon_model.predict(test_emoticon_X)
-        pred_text = text_model.predict(test_seq_X)
+        #pred_feat = feature_model.predict(test_feat_X)
+        #pred_emoticons = emoticon_model.predict(test_emoticon_X)
+        #pred_text = text_model.predict(test_seq_X)
         pred_combined = best_model.predict(test_feat_X, test_emoticon_X, test_seq_X)
 
         test_emo_df = pd.read_csv("datasets/valid/valid_emoticon.csv")
@@ -38,6 +38,7 @@ if __name__ == '__main__':
         test_seq_df = pd.read_csv("datasets/valid/valid_text_seq.csv")
         test_seq_Y = test_seq_df['label'].tolist()
 
+        """
         print("(1) Features dataset: ")
         accuracy = accuracy_score(pred_feat, test_feat_Y)
         y[0].append(accuracy * 100)
@@ -61,6 +62,7 @@ if __name__ == '__main__':
 
         conf_matrix = confusion_matrix(pred_text, test_seq_Y)
         print(f'Confusion Matrix:\n{conf_matrix}')
+        """
 
         print("(4) Combined dataset: ")
         accuracy = accuracy_score(pred_combined, test_feat_Y)
@@ -71,10 +73,10 @@ if __name__ == '__main__':
         print(f'Confusion Matrix:\n{conf_matrix}')
 
     # Plot each line
-    plt.plot(x, y[0], label='Features', color='blue')
-    plt.plot(x, y[1], label='Emoticon', color='green')
-    plt.plot(x, y[2], label='Sequence', color='red')
-    plt.plot(x, y[3], label='Combined', color='orange')
+    #plt.plot(x, y[0], label='Features', color='blue')
+    #plt.plot(x, y[1], label='Emoticon', color='green')
+    #plt.plot(x, y[2], label='Sequence', color='red')
+    #plt.plot(x, y[3], label='Combined', color='orange')
 
     # Add labels and title
     plt.xlabel('Percentage of training data used')

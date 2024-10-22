@@ -1,4 +1,5 @@
 import pandas as pd
+from joblib import dump, load
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -239,9 +240,7 @@ class CombinedModel(MLModel):
 
         X_train_final = np.concatenate((np.array(train_emo_X_encoded), ds2 , np.array(X_train_seq)), axis=1)
 
-        self.model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=200))
-        self.model.fit(X_train_final, train_seq_Y)
-
+        self.model = load('combined_model.joblib')
 
     def encode_with_unknown(self, emoji_list, encoder, known_set, unknown_label=-1):
         encoded_list = []
