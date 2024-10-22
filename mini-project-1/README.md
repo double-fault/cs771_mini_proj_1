@@ -10,6 +10,7 @@ Run `validation.py` to run the 4 final models with varying amount of training da
 
 # Directory Structure
 
+```
 ├── 48.py
 ├── datasets
 │   ├── test
@@ -27,4 +28,5 @@ Run `validation.py` to run the 4 final models with varying amount of training da
 ├── read_data.py
 ├── README
 └── validation.py
+```
 
