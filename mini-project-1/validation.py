@@ -19,10 +19,10 @@ if __name__ == '__main__':
         test_emoticon_X = pd.read_csv("datasets/valid/valid_emoticon.csv")['input_emoticon'].tolist()
         test_seq_X = pd.read_csv("datasets/valid/valid_text_seq.csv")['input_str'].tolist()
         
+        best_model = ygn.CombinedModel(stp)
         feature_model = ygn.FeatureModel(stp)
         text_model = ygn.TextSeqModel(stp)
         emoticon_model  = ygn.EmoticonModel(stp)
-        best_model = ygn.CombinedModel(stp)
         
         pred_feat = feature_model.predict(test_feat_X)
         pred_emoticons = emoticon_model.predict(test_emoticon_X)
@@ -81,6 +81,7 @@ if __name__ == '__main__':
     plt.ylabel('Accuracy')
     plt.title('Accuracy comparison of 4 models')
 
+    plt.grid(True)
     # Add legend
     plt.legend()
 

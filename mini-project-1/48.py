@@ -9,6 +9,9 @@ from tensorflow.keras.layers import Conv1D, Dropout, MaxPooling1D, Flatten, Dens
 from tensorflow.keras import layers, models
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 
 # Base class
 class MLModel():
@@ -167,56 +170,122 @@ class FeatureModel(MLModel):
 # Task 2: Our model is logistic regression on a combination of dataset 1 and 2
 class CombinedModel(MLModel):
     def __init__(self, pct=100) -> None:
+        # read emoticon dataset
+        train_emoticon_df = pd.read_csv("datasets/train/train_emoticon.csv")
+
+        n = len(train_emoticon_df)
+        n = int(n * pct / 100)
+        train_emoticon_df = train_emoticon_df[:n]
+
+        train_emoticon_X = train_emoticon_df['input_emoticon'].tolist()
+        train_emoticon_Y = train_emoticon_df['label'].tolist()
+
+        # read text sequence dataset
+        train_seq_df = pd.read_csv("datasets/train/train_text_seq.csv")
+
+        n = len(train_seq_df)
+        n = int(n * pct / 100)
+        train_seq_df = train_seq_df[:n]
+
+        train_seq_X = train_seq_df['input_str'].tolist()
+        train_seq_Y = train_seq_df['label'].tolist()
+
+        # read feature dataset
         train_feat = np.load("datasets/train/train_feature.npz", allow_pickle=True)
+
         train_feat_X = train_feat['features']
         train_feat_Y = train_feat['label']
 
-        n = train_feat_X.shape[0]
+        n = len(train_feat_X)
         n = int(n * pct / 100)
+        train_feat_X = train_feat_X[:n]
+        train_feat_Y = train_feat_Y[:n]
 
-        train_feat_X = train_feat_X[0:n]
-        train_feat_Y = train_feat_Y[0:n]
+        self.n_components = 60  # Number of components you want to preserve
+        self.scaler = StandardScaler()
+        self.pca = PCA(n_components=self.n_components)
 
-        train_seq_df = pd.read_csv("datasets/train/train_emoticon.csv")
+        # Reshape the training data to (7080 * 13, 768)
+        train_feat_X_reshaped = train_feat_X.reshape(-1, 768)  # Shape will be (7080*13, 768)
 
-        train_emo_X = train_seq_df['input_emoticon'].tolist()
-        train_emo_X = [[ord(x)  for x in e] for e in train_emo_X]
-        train_emo_Y = train_seq_df['label'].tolist()
 
-        X_train = np.array(train_emo_X, dtype='float64')
-        y_train =np.array(train_emo_Y, dtype='float64')
+        # Standardize the reshaped training data
+        train_feat_X_scaled = self.scaler.fit_transform(train_feat_X_reshaped)
 
-        m = X_train.shape[0]
-        m = int(m * pct / 100)
+        # Apply PCA
+        train_X_pca = self.pca.fit_transform(train_feat_X_scaled)
 
-        X_train = X_train[0:m]
-        y_train = y_train[0:m]
+        # Reshape back to (7080, 13, 50)
+        X_pca = train_X_pca.reshape(n, 13, self.n_components)
 
-        m = train_feat_X.shape[0]
-        m = int(m * pct / 100)
-        train_feat_x = train_feat_X[0:m]
+        ds2 = X_pca.reshape(X_pca.shape[0], -1)
 
-        X_train = X_train.reshape(X_train.shape[0], -1)
+        train_emo_X = train_emoticon_df['input_emoticon'].tolist()
+        train_emo_X = np.array([[ord(x) for x in e] for e in train_emo_X])
+        train_emo_Y = train_emoticon_df['label'].tolist()
 
-        X_train2 = train_feat_X.reshape(train_feat_X.shape[0], -1)
+        self.emoji_encoder = LabelEncoder()
 
-        X_train = np.concatenate((X_train, X_train2), axis=1)
+        # Flatten the list of emojis and fit the label encoder
+        # Since train_emo_X is 2D (13, 786), we need to flatten it for unique emojis
+        flat_train_emojis = [emoji for sublist in train_emo_X for emoji in sublist]
+        self.emoji_encoder.fit(flat_train_emojis)
+        self.emoji_set = set(flat_train_emojis)
+
+        # Transform the training emojis to their coresponding numerical labels
+        train_emo_X_encoded = np.array([[self.emoji_encoder.transform([x])[0] for x in e] for e in train_emo_X])
+
+        X_train_seq = np.array([[int(char) for char in sequence] for sequence in train_seq_X])
+
+        X_train_final = np.concatenate((np.array(train_emo_X_encoded), ds2 , np.array(X_train_seq)), axis=1)
 
         self.model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=200))
+        self.model.fit(X_train_final, train_seq_Y)
 
-        self.model.fit(X_train, y_train)
+
+    def encode_with_unknown(self, emoji_list, encoder, known_set, unknown_label=-1):
+        encoded_list = []
+        for emoji_seq in emoji_list:
+            encoded_seq = []
+            for emoji in emoji_seq:
+                if emoji in known_set:
+                    # Encode with the existing LabelEncoder
+                    encoded_seq.append(encoder.transform([emoji])[0])
+                else:
+                    # Assign the unknown label if the emoji is not known
+                    encoded_seq.append(unknown_label)
+            encoded_list.append(encoded_seq)
+        return np.array(encoded_list)
 
     def predict(self, X1, X2, X3): 
-        X2 = [[ord(x) for x in e] for e in X2]
-        X2 = np.array(X2, dtype='float64')
+        valid_feat_X = X1
+        valid_seq_X = X3
+        valid_emoticon_X = X2
 
-        X1 = X1.reshape(X1.shape[0], -1)
-        X2 = X2.reshape(X2.shape[0], -1)
-        
-        X = np.concatenate((X2, X1), axis=1)
-        return self.model.predict(X)
+        # Now handle the validation data similarly
+        valid_feat_X_reshaped = valid_feat_X.reshape(-1, 768)  # Shape will be (len(valid_feat_X)*13, 768)
+        valid_feat_X_scaled = self.scaler.transform(valid_feat_X_reshaped)
+
+        # Apply PCA on the validation data
+        valid_X_pca = self.pca.transform(valid_feat_X_scaled)
+
+        # Reshape back to (len(valid_feat_X), 13, 50)
+        valid_X_pca = valid_X_pca.reshape(len(valid_feat_X), 13, self.n_components)
+   
+        valid_ds2 = valid_X_pca.reshape(valid_X_pca.shape[0], -1)
     
-    
+        valid_emo_X = valid_emoticon_X
+        valid_emo_X = np.array([[ord(x)  for x in e] for e in valid_emo_X])
+
+        valid_emo_X_encoded = self.encode_with_unknown(valid_emo_X, self.emoji_encoder, self.emoji_set)
+        #valid_emo_X_encoded = np.array([[self.emoji_encoder.transform([x])[0] for x in e] for e in valid_emo_X])
+
+        X_valid_seq = np.array([[int(char) for char in sequence] for sequence in valid_seq_X])
+
+        X_valid_final = np.concatenate((np.array(valid_emo_X_encoded), valid_ds2 , np.array(X_valid_seq)), axis=1)
+
+        return self.model.predict(X_valid_final)
+
 def save_predictions_to_file(predictions, filename):
     with open(filename, 'w') as f:
         for pred in predictions:
