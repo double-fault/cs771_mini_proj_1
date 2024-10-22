@@ -1,6 +1,9 @@
-from your_group_no import *
+ygn = __import__ ('48')
+
 from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 if __name__ == '__main__':
     stps = [20, 40, 60, 80, 100]
@@ -16,10 +19,10 @@ if __name__ == '__main__':
         test_emoticon_X = pd.read_csv("datasets/valid/valid_emoticon.csv")['input_emoticon'].tolist()
         test_seq_X = pd.read_csv("datasets/valid/valid_text_seq.csv")['input_str'].tolist()
         
-        feature_model = FeatureModel(stp)
-        text_model = TextSeqModel(stp)
-        emoticon_model  = EmoticonModel(stp)
-        best_model = CombinedModel(stp)
+        feature_model = ygn.FeatureModel(stp)
+        text_model = ygn.TextSeqModel(stp)
+        emoticon_model  = ygn.EmoticonModel(stp)
+        best_model = ygn.CombinedModel(stp)
         
         pred_feat = feature_model.predict(test_feat_X)
         pred_emoticons = emoticon_model.predict(test_emoticon_X)
